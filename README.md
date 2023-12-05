@@ -14,6 +14,22 @@ Note: in order to build successfully you should make sure you have about 20GB of
 
 This repository includes a [Dockerfile](Dockerfile) used to build a [Docker container](https://docs.docker.com/get-started/#what-is-a-container) that provides the Linux environment needed to build webrtc-android. To get started you will need to install [Docker Desktop](https://docs.docker.com/get-docker/). (Needed for Windows and macOS. Linux users may install [Docker engine](https://docs.docker.com/engine/install/) instead and use it directly if they want.)
 
+#### MacOS performance settings
+
+For Mac users, particularly those with Apple silicon, there are huge performance improvements from using the correct settings (i.e. going from 1 hour to checkout and 10 hours to build to just 10 and 35 minutes respectively).
+
+First, the OS must be [Ventura or higher](https://en.wikipedia.org/wiki/MacOS_version_history)
+
+Second, rosetta2 must be installed:
+
+```bash
+softwareupdate --install-rosetta
+```
+
+Finally, the [Docker Desktop](https://docs.docker.com/desktop/settings/mac/) settings must be configured to "Use Virtualization framework" and "Use Rosetta for x86/amd64 emulation on Apple Silicon":
+
+![Docker Desktop for MacOS settings](img/docker-desktop-mac-settings.png)
+
 ### Create Docker container
 
 Open a terminal/command prompt in this projects directory. Run the following commands to
