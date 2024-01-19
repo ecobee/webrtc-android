@@ -61,6 +61,8 @@ def run_build(opts, logfile):
     build_opts = []
     if opts.official:
         build_opts.append('--extra-gn-args=is_official_build=true')
+    if opts.unstripped:
+        build_opts.append('--use-unstripped-libs')
     run_command(['./tools_webrtc/android/build_aar.py'] + build_opts, logfile, cwd=source_dir)
 
 def parse_args(argv):
@@ -97,6 +99,12 @@ def parse_args(argv):
                               default=True,
                               help='Enable the "official" build level of optimization.'
                                    ' Should be true for any build shipped to end-users. Defaults to true.')
+
+    build_parser.add_argument('--unstripped',
+                              action=argparse.BooleanOptionalAction,
+                              default=False,
+                              help='Build the webrtc library with unstripped .so files.'
+                                   ' The .aar file will be 100+MB larger if this is enabled. Defaults to false.')
 
     return parser.parse_args(argv[1:])
 
