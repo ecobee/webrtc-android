@@ -131,6 +131,20 @@ docker cp webrtc-android:/webrtc-android/src/LICENSE.md .
 
 They will be saved in the directory where you are running the command. Then you can simply create a release in https://github.com/ecobee/webrtc-android and upload these files as artifacts. The release tag should be `v<milestone>.0.0`, and the .aar file should be renamed to `libwebrtc-<milestone>.0.0.aar`, e.g. for milestone 119 the tag will be `v119.0.0` and the file name will be `libwebrtc-119.0.0.aar`. It's important to match these naming conventions so the ecobee android app build can fetch the library.
 
+Additional option `--unstripped` will pass `--use-unstripped-libs` to the `/webrtc-android/src/tools_webrtc/android/build_aar.py` which will build the .so files with the symbols unstripped.
+
+Here's one way to verify that the .aar file contains the unstripped symbols.
+
+```bash
+# this extracts the contents to the current directory
+jar -xf libwebrtc.aar
+cd jni
+# one of the arm/x86 directories
+cd arm64-v8a
+# this will have an empty symbol table if we don't set the --use-unstripped-libs option
+objdump --syms libjingle_peerconnection_so.so
+```
+
 ### Clean up
 
 Once you have successfully updated WebRTC, you may want to clean up the docker container, image, and volume, both to reclaim the disk space used and to ensure the next time you build you are using a completely fresh environment. To do this, run these commands:
