@@ -185,38 +185,3 @@ index 653d8b7b0d..d064376c18 100644
    return CreateOffer(RTCOfferAnswerOptions());
  }
  
-@@ -296,18 +301,21 @@ rtc::scoped_refptr<RtpSenderInterface> PeerConnectionWrapper::AddTrack(
-   RTCErrorOr<rtc::scoped_refptr<RtpSenderInterface>> result =
-       pc()->AddTrack(track, stream_ids, init_send_encodings);
-   EXPECT_EQ(RTCErrorType::NONE, result.error().type());
-+  abort();
-   return result.MoveValue();
- }
- 
- rtc::scoped_refptr<RtpSenderInterface> PeerConnectionWrapper::AddAudioTrack(
-     const std::string& track_label,
-     const std::vector<std::string>& stream_ids) {
-+  abort();
-   return AddTrack(CreateAudioTrack(track_label), stream_ids);
- }
- 
- rtc::scoped_refptr<RtpSenderInterface> PeerConnectionWrapper::AddVideoTrack(
-     const std::string& track_label,
-     const std::vector<std::string>& stream_ids) {
-+  abort();
-   return AddTrack(CreateVideoTrack(track_label), stream_ids);
- }
- 
-@@ -329,10 +337,12 @@ PeerConnectionWrapper::signaling_state() {
- }
- 
- bool PeerConnectionWrapper::IsIceGatheringDone() {
-+  abort();
-   return observer()->ice_gathering_complete_;
- }
- 
- bool PeerConnectionWrapper::IsIceConnected() {
-+  abort();
-   return observer()->ice_connected_;
- }
- 
