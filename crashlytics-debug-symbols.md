@@ -1,7 +1,25 @@
 # Debug Symbols for Crashlytics
 
 ## Getting webrtc to crash
-There's a patch `add-segfault-to-webrtc-src.patch` which adds a bunch of segfaults in various places to get webrtc to crash. These seem to be what's being called in the java native interfaces. 
+There's a patch `add-segfault-to-webrtc-src.patch` which adds a bunch of segfaults in various places to get webrtc to crash. These seem to be what's being called in the java native interfaces.
+
+The following steps assume that the name of the docker container is webrtc-android.
+
+To send the patch to the docker container:
+
+```bash
+docker cp add-segfault-to-webrtc-src.patch webrtc-android:/webrtc-android/add-segfault-to-webrtc-src.patch
+```
+
+To apply the patch: 
+```bash
+docker exec -it webrtc-android bash # open a shell in docker container
+cd /webrtc-android/src
+git apply /webrtc-android/add-segfault-to-webrtc-src.patch
+```
+
+**NOTE**: The patch is valid for version 110 (branch head 5481) so its possible the patch will not apply for other versions. If so, to acheive a similar result, find `src/pc/data_channel_controller.cc` and add the segfaults manually from the patch where then `InternalCreateDataChannelWithProxy` function is defined.
+
 
 The jni code is mostly kept in `src/sdk/android/src/jni` for future reference.
 
