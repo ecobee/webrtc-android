@@ -85,6 +85,33 @@ Start the container and run the following command in the bash prompt to execute 
 python3 build.py fetch --revision branch-heads/6045
 ```
 
+**NOTE** running fetch on branch-heads 5481 (for v110) has an issue with installing `snapcraft` in docker containers. 
+One way to get through this is when checking the build log, when you see something similar to this 
+
+```
+==> Checking connectivity with the snap store
+Configuring snapcraft
+---------------------
+
+Your system is unable to reach the snap store, please make sure you're
+connected to the Internet and update any firewall or proxy settings as needed
+so that you can reach the snap store.
+
+You can manually check for connectivity by running "snap info snapcraft"
+
+Aborting will cause the upgrade to fail and will require it to be re-attempted
+once snapd is functional on the system.
+
+Skipping will let the package upgrade continue but the Snapcraft commands will
+not be functional until the Snapcraft snap is installed.
+
+  1. Retry  2. Abort  3. Skip
+```
+
+You can input 3 into the shell to skip the snapcraft installation. This allows the rest of the fetch step to proceed.
+
+From branch heads 5790 and onwards, at some point the `src/build/install-build-deps.sh` simply became a wrapper for a python script `src/build/install-build-deps.py` which removed snapcraft from the list. You can see it under the `backwards_compatible_list` function that lists snapcraft as a removed package.
+
 The script will output a list of the commands it is executing. It also prints the name of a log file to which it writes all the output of each of those commands, to help with debugging if something goes wrong. The full fetch may take a little while. To view the log file afterward, you can use the `less` command.
 
 ### Building the code
