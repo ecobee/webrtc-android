@@ -174,3 +174,7 @@ docker cp {act container id}:$(pwd)/LICENSE.md .
 ### Clean up
 
 To clean up the act Docker container, image and volume, use docker container ls, docker volume ls, and docker image ls to obtain the names and ids of them. Then use docker container rm, docker image rm, docker image prune, and docker volume rm, to remove them. Alternatively, you can use the Docker Desktop to remove them.
+
+### NOTE
+
+The Github action removes /usr/share/dotnet and "$AGENT_TOOLSDIRECTORY" to allocate space for the build files to be able to run on Github.
