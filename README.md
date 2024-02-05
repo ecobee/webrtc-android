@@ -141,3 +141,36 @@ docker volume rm webrtc-src
 docker image rm webrtc-android
 docker image prune
 ```
+
+## Building with the Github Action
+
+The Github Action takes two inputs, the milestone number, and the branch number of the WebRTC revision to be build. For example, for milestone 119, the inputs would be 6045 for the branch number, and 119.0.0 for the milestone number.
+
+For local testing, [act](https://github.com/nektos/act) can be used. First, follow the instructions in the act repository to install act and Docker as needed. To run the steps for creating and uploading files for a release locally, you will need to provide a GITHUB_TOKEN. See the instructions to do so [here](https://github.com/nektos/act?tab=readme-ov-file#github_token). If you'd like to obtain the files locally, follow the instructions below without providing a token.
+
+Once you have installed act and have checked out this repository, create a json file called events.json with the contents:
+```
+{
+    "action": "workflow_dispatch",
+    "inputs": {
+        "branch_number": "6045",
+        "milestone": "119.0.0"
+    }
+}
+```
+
+Then to run act to dispatch this workflow,
+```bash
+act workflow_dispatch -e events.json
+```
+
+Act will create a docker container for this workflow and another will be created for the webrtc build. If no GITHUB_TOKEN is provided, then the workflow should fail on the Create Release step. To extract the build files from the Docker container, use the commands, replacing act container id and milestone number as needed.
+
+```bash
+docker cp {act container id}:$(pwd)/libwebrtc-{milestone number}.aar .
+docker cp {act container id}:$(pwd)/LICENSE.md .
+```
+
+### Clean up
+
+To clean up the act Docker container, image and volume, use docker container ls, docker volume ls, and docker image ls to obtain the names and ids of them. Then use docker container rm, docker image rm, docker image prune, and docker volume rm, to remove them. Alternatively, you can use the Docker Desktop to remove them.
