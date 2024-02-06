@@ -1,5 +1,8 @@
 # Debug Symbols for Crashlytics
 
+## Reference
+https://firebase.google.com/docs/crashlytics/ndk-reports
+
 ## Getting webrtc to crash
 There's a patch `add-segfault-to-webrtc-src.patch` which adds a bunch of segfaults in various places to get webrtc to crash. These seem to be what's being called in the java native interfaces.
 
@@ -59,6 +62,7 @@ objdump --syms libjingle_peerconnection_so.so
 ## Uploading symbols
 Add/replace the `libwebrtc.aar` file in the `webrtc-module` under the `build` folder. Then execute this command to upload the symbols. 
 
+You will need to install the firebase CLI [here](https://firebase.google.com/docs/cli)
 
 ```bash
   firebase crashlytics:symbols:upload --app=FROM_CRASHLYTICS_PROJECT_SETTINGS webrtc-module/build
@@ -75,10 +79,13 @@ i  Output Path: /var/folders/df/5sjy9fd951lfn_2_b9m99hvsnrq67s/T/crashlytics-406
 i  Skipping upload because --dry-run was passed
 ```
 
+**NOTE** once the symbols are uploaded, we don't need to build the app with the unstripped (larger) apk. We can use the normal (smaller) stripped apk afterwards.
+
 ## Verifying crashes
 Launch the app normally, replacing the normal `libwebrtc-XXX.X.X.aar` with the newly built one. Going into the camera live view should crash the app.
 
-You should get something like this
+You should get something like this in the android logs
+
 ```
 2024-01-29 09:09:46.064 18024-18297 libc                    com.ecobee.athenamobile              A  Fatal signal 11 (SIGSEGV), code 1 (SEGV_MAPERR), fault addr 0x0 in tid 18297 (signaling_threa), pid 18024 (ee.athenamobile)
 2024-01-29 09:09:46.160 18307-18307 DEBUG                   pid-18307                            A  pid: 18024, tid: 18297, name: signaling_threa  >>> com.ecobee.athenamobile <<<
