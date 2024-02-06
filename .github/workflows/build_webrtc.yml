@@ -54,7 +54,10 @@ jobs:
         python3 build.py build
         df -h /
         ls
-
+        
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
+      
     - name: Rename aar file to include milestone
       run: |
         mv libwebrtc.aar libwebrtc-${{ inputs.milestone }}.aar
