@@ -9,6 +9,11 @@ on:
       milestone:
         description: The milestone number of the WebRTC branch
         required: true
+      unstripped:
+        description: 'Build webrtc with symbols unstripped?'
+        type: boolean
+        required: true
+        default: false
 
 jobs:
   build:
@@ -18,6 +23,9 @@ jobs:
       run: |
         sudo rm -rf /usr/share/dotnet
         sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+
+    - name: test
+      run: echo v${{ inputs.milestone }}${{ (inputs.unstripped && '-unstripped') || '' }} # add '-unstripped' suffix if needed
 
     - name: Checkout repository
       uses: actions/checkout@v4.1.1
@@ -42,8 +50,8 @@ jobs:
 
     - name: Build WebRTC
       run: |
-        python3 build.py build
-      
+        python3 build.py build ${{ (inputs.unstripped && '--unstripped') || '' }}
+
     - name: Get and rename built files
       run: |
         mv ./src/libwebrtc.aar libwebrtc-${{ inputs.milestone }}.aar
@@ -55,15 +63,15 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: v${{ inputs.milestone }}
-        release_name: v${{ inputs.milestone }}
+        tag_name: v${{ inputs.milestone }}${{ inputs.unstripped && '-unstripped' || ''}} # add '-unstripped' suffix if needed
+        release_name: v${{ inputs.milestone }}${{ inputs.unstripped && '-unstripped' || ''}}
         body: |
           Built off of the ${{inputs.milestone}} branch here: https://chromiumdash.appspot.com/branches 
 
 
           ## 📃 License
           * WebRTC License: https://webrtc.org/support/license
-    
+
     - name: Upload release aar
       id: upload-release-aar
       uses: actions/upload-release-asset@v1
