@@ -9,6 +9,11 @@ on:
       milestone:
         description: The milestone number of the WebRTC branch
         required: true
+      unstripped:
+        description: 'Build webrtc with symbols unstripped?'
+        type: boolean
+        required: true
+        default: false
 
 jobs:
   build:
@@ -41,9 +46,15 @@ jobs:
         python3 build.py fetch --revision branch-heads/${{  inputs.branch_number }}
 
     - name: Build WebRTC
+      if: '${{ !inputs.unstripped }}'
       run: |
         python3 build.py build
-      
+
+    - name: Build WebRTC unstripped
+      if: '${{ inputs.unstripped }}'
+      run: |
+        python3 build.py build --unstripped
+
     - name: Get and rename built files
       run: |
         mv ./src/libwebrtc.aar libwebrtc-${{ inputs.milestone }}.aar
