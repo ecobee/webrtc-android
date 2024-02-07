@@ -1,0 +1,61 @@
+diff --git a/pc/data_channel_controller.cc b/pc/data_channel_controller.cc
+index 36f11fe12e..347355d3cd 100644
+--- a/pc/data_channel_controller.cc
++++ b/pc/data_channel_controller.cc
+@@ -12,6 +12,7 @@
+ 
+ #include <utility>
+ 
++#include <stdlib.h>
+ #include "api/peer_connection_interface.h"
+ #include "api/rtc_error.h"
+ #include "pc/peer_connection_internal.h"
+@@ -245,30 +246,48 @@ void DataChannelController::OnDataChannelOpenMessage(
+     const InternalDataChannelInit& config) {
+   rtc::scoped_refptr<DataChannelInterface> channel(
+       InternalCreateDataChannelWithProxy(label, &config));
++
+   if (!channel.get()) {
+     RTC_LOG(LS_ERROR) << "Failed to create DataChannel from the OPEN message.";
++    // JASON
++    int *p = NULL;
++    *p = 1;
+     return;
+   }
+ 
+   pc_->Observer()->OnDataChannel(std::move(channel));
+   pc_->NoteDataAddedEvent();
++  // JASON
++  int *p = NULL;
++  *p = 1;
++  std::abort();
+ }
+ 
+ rtc::scoped_refptr<DataChannelInterface>
+ DataChannelController::InternalCreateDataChannelWithProxy(
+     const std::string& label,
+     const InternalDataChannelInit* config) {
++
+   RTC_DCHECK_RUN_ON(signaling_thread());
+   if (pc_->IsClosed()) {
++    // JASON
++    int *p = NULL;
++    *p = 1;
+     return nullptr;
+   }
+ 
+   rtc::scoped_refptr<SctpDataChannel> channel =
+       InternalCreateSctpDataChannel(label, config);
+   if (channel) {
++    // JASON
++    int *p = NULL;
++    *p = 1;
+     return SctpDataChannel::CreateProxy(channel);
+   }
+ 
++  // JASON
++  int *p = NULL;
++  *p = 1;
+   return nullptr;
+ }
+ 
