@@ -21,7 +21,14 @@ def run_command(args, logfile, cwd=None):
     log(f"Running '{' '.join(args)}' in '{cwd if cwd is not None else os.getcwd()}'", logfile)
     logfile.flush()
     try:
-        subprocess.run(args, cwd=cwd, check=True, stderr=subprocess.STDOUT, stdout=logfile)
+        subprocess.run(
+            args,
+            cwd=cwd,
+            env=os.environ.copy(),
+            check=True,
+            stderr=subprocess.STDOUT,
+            stdout=logfile,
+        )
     except:
         log('Command failed.', logfile)
         raise
@@ -52,6 +59,18 @@ def run_fetch(opts, logfile):
 
     source_dir = os.path.join(opts.dir, ROOT)
     run_command(['git', 'config', 'diff.ignoreSubmodules', 'dirty'], logfile, cwd=source_dir)
+
+    # Ensure any apt/dpkg activity triggered by Chromium's build-deps scripts runs
+    # fully non-interactively and doesn't prompt for locale/tz configuration.
+    os.environ.setdefault('DEBIAN_FRONTEND', 'noninteractive')
+    os.environ.setdefault('DEBIAN_PRIORITY', 'critical')
+    os.environ.setdefault('DEBCONF_NONINTERACTIVE_SEEN', 'true')
+    os.environ.setdefault('APT_LISTCHANGES_FRONTEND', 'none')
+    os.environ.setdefault('TZ', 'Etc/UTC')
+    os.environ.setdefault('LANG', 'C.UTF-8')
+    os.environ.setdefault('LC_ALL', 'C.UTF-8')
+    os.environ.setdefault('LANGUAGE', 'C.UTF-8')
+
     run_command(['./build/install-build-deps.sh'], logfile, cwd=source_dir)
     run_command(['gclient', 'runhooks'], logfile, cwd=opts.dir)
 
@@ -60,7 +79,7 @@ def run_build(opts, logfile):
     source_dir = os.path.join(opts.dir, ROOT)
     build_opts = []
     if opts.official:
-        build_opts.append('--extra-gn-args=is_official_build=true')
+        build_opts.append('--extra-gn-args=rtc_use_h265=true is_official_build=true chrome_pgo_phase=0')
     if opts.unstripped:
         build_opts.append('--use-unstripped-libs')
     run_command(['./tools_webrtc/android/build_aar.py'] + build_opts, logfile, cwd=source_dir)
