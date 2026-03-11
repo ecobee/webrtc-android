@@ -122,7 +122,23 @@ Still inside the container's bash shell, run the following command to build the 
 python3 build.py build
 ```
 
-Again, the full output will be written to a log file. The .aar file will be placed at the `/webrtc-android/src/libwebrtc.aar` path. To extract it and the license file from the docker container, run the following commands:
+Again, the full output will be written to a log file. The .aar file will be placed at the `/webrtc-android/src/libwebrtc.aar` path.
+
+The build script automatically checks 16KB page alignment for 64-bit .so files (arm64-v8a, x86_64). This is required for Android 16 compatibility.
+
+#### Building an unstripped AAR (for Crashlytics)
+
+To generate an AAR with debug symbols intact (needed for native crash symbolication in Firebase Crashlytics):
+
+```bash
+python3 build.py build --unstripped
+```
+
+This produces a larger AAR containing unstripped `.so` files with full symbol information. This AAR is not shipped in the app — it's only used to upload debug symbols to Crashlytics.
+
+#### Extracting files from Docker
+
+To extract the built files from the docker container, run the following commands:
 
 ```bash
 docker cp webrtc-android:/webrtc-android/src/libwebrtc.aar .
@@ -130,6 +146,21 @@ docker cp webrtc-android:/webrtc-android/src/LICENSE.md .
 ```
 
 They will be saved in the directory where you are running the command. Then you can simply create a release in https://github.com/ecobee/webrtc-android and upload these files as artifacts. The release tag should be `v<milestone>.0.0`, and the .aar file should be renamed to `libwebrtc-<milestone>.0.0.aar`, e.g. for milestone 119 the tag will be `v119.0.0` and the file name will be `libwebrtc-119.0.0.aar`. It's important to match these naming conventions so the ecobee android app build can fetch the library.
+
+### Uploading Crashlytics native symbols
+
+When upgrading the WebRTC version in the ecobee app, upload the unstripped symbols to Firebase Crashlytics so native crashes are symbolicated with function names and source references.
+
+1. Download or build the unstripped AAR (e.g. `libwebrtc-145-unstripped.aar`)
+2. Extract the `.so` files:
+   ```bash
+   unzip libwebrtc-145-unstripped.aar "jni/*" -d unstripped-symbols
+   ```
+3. Upload to Crashlytics using the Firebase CLI:
+   ```bash
+   firebase crashlytics:symbols:upload --app=<FIREBASE_APP_ID> unstripped-symbols/jni
+   ```
+   Replace `<FIREBASE_APP_ID>` with your Android app's Firebase App ID (found in Firebase console under Project Settings).
 
 ### Clean up
 
@@ -144,7 +175,16 @@ docker image prune
 
 ## Building with the Github Action
 
-The Github Action takes two inputs, the milestone number, and the branch number of the WebRTC revision to be build. For example, for milestone 119, the inputs would be 6045 for the branch number, and 119.0.0 for the milestone number.
+The Github Action takes two inputs:
+- **branch_number**: The branch number from https://chromiumdash.appspot.com/branches (e.g. `7632`)
+- **milestone**: The milestone number (e.g. `145`)
+
+The workflow automatically builds **both** a stripped AAR (for the app) and an unstripped AAR (for Crashlytics symbol upload), then uploads both to the GitHub release along with the license file.
+
+For example, for milestone 145 (branch-heads/7632), the workflow will produce:
+- `libwebrtc-145.aar` — stripped, for app distribution
+- `libwebrtc-145-unstripped.aar` — unstripped, for Crashlytics symbol upload
+- `LICENSE.md`
 
 For local testing, [act](https://github.com/nektos/act) can be used. First, follow the instructions in the act repository to install act and Docker as needed. To run the steps for creating and uploading files for a release locally, you will need to provide a GITHUB_TOKEN. See the instructions to do so [here](https://github.com/nektos/act?tab=readme-ov-file#github_token). If you'd like to obtain the files locally, follow the instructions below without providing a token.
 
@@ -153,8 +193,8 @@ Once you have installed act and have checked out this repository, create a json 
 {
     "action": "workflow_dispatch",
     "inputs": {
-        "branch_number": "6045",
-        "milestone": "119.0.0"
+        "branch_number": "7632",
+        "milestone": "145"
     }
 }
 ```
@@ -168,6 +208,7 @@ Act will create a docker container for this workflow and another will be created
 
 ```bash
 docker cp {act container id}:$(pwd)/libwebrtc-{milestone number}.aar .
+docker cp {act container id}:$(pwd)/libwebrtc-{milestone number}-unstripped.aar .
 docker cp {act container id}:$(pwd)/LICENSE.md .
 ```
 

@@ -9,15 +9,10 @@ on:
       milestone:
         description: The milestone number of the WebRTC branch
         required: true
-      unstripped:
-        description: 'Build webrtc with symbols unstripped?'
-        type: boolean
-        required: true
-        default: false
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
     - name: Allocate space for build
       run: |
@@ -26,7 +21,7 @@ jobs:
 
     - name: Checkout repository
       uses: actions/checkout@v4.1.1
-    
+
     - name: Install Python and binutils
       run: |
         sudo apt-get update
@@ -36,41 +31,65 @@ jobs:
     - name: Fetch depot tools
       run: |
         git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
-      
+
     - name: Add depot tools to path
       run: |
         echo "$(pwd)/depot_tools" >> $GITHUB_PATH
 
     - name: Fetch WebRTC revision
       run: |
-        python3 build.py fetch --revision branch-heads/${{  inputs.branch_number }}
+        python3 build.py fetch --revision branch-heads/${{ inputs.branch_number }}
 
-    - name: Build WebRTC
+    - name: Build stripped WebRTC
       run: |
-        python3 build.py build ${{ (inputs.unstripped && '--unstripped') || '' }}
+        python3 build.py build
 
-    - name: Get and rename built files
+    - name: Save stripped AAR and build unstripped
       run: |
-        mv ./src/libwebrtc.aar libwebrtc-${{ inputs.milestone }}.aar
+        cp ./src/libwebrtc.aar libwebrtc-${{ inputs.milestone }}.aar
+        python3 build.py build --unstripped
+
+    - name: Save unstripped AAR and license
+      run: |
+        mv ./src/libwebrtc.aar libwebrtc-${{ inputs.milestone }}-unstripped.aar
         mv ./src/LICENSE.md LICENSE.md
 
+    - name: Upload build artifacts
+      if: github.ref != 'refs/heads/main'
+      uses: actions/upload-artifact@v4
+      with:
+        name: webrtc-aars
+        path: |
+          libwebrtc-${{ inputs.milestone }}.aar
+          libwebrtc-${{ inputs.milestone }}-unstripped.aar
+          LICENSE.md
+
     - name: Create Release
+      if: github.ref == 'refs/heads/main'
       id: create_release
       uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: v${{ inputs.milestone }}${{ inputs.unstripped && '-unstripped' || ''}} # add '-unstripped' suffix if needed
-        release_name: v${{ inputs.milestone }}${{ inputs.unstripped && '-unstripped' || ''}}
+        tag_name: v${{ inputs.milestone }}
+        release_name: v${{ inputs.milestone }}
         body: |
-          Built off of the ${{inputs.milestone}} branch here: https://chromiumdash.appspot.com/branches 
+          Built off of the ${{ inputs.milestone }} branch here: https://chromiumdash.appspot.com/branches
 
+          Includes both stripped (for app distribution) and unstripped (for Crashlytics symbol upload) AARs.
 
-          ## 📃 License
+          ## Crashlytics Native Symbol Upload
+          To upload native debug symbols for crash reporting:
+          ```bash
+          unzip libwebrtc-${{ inputs.milestone }}-unstripped.aar "jni/*" -d unstripped-symbols
+          firebase crashlytics:symbols:upload --app=<FIREBASE_APP_ID> unstripped-symbols/jni
+          ```
+
+          ## License
           * WebRTC License: https://webrtc.org/support/license
 
-    - name: Upload release aar
-      id: upload-release-aar
+    - name: Upload stripped AAR
+      if: github.ref == 'refs/heads/main'
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -79,9 +98,20 @@ jobs:
         asset_path: ./libwebrtc-${{ inputs.milestone }}.aar
         asset_name: libwebrtc-${{ inputs.milestone }}.aar
         asset_content_type: application/zip
-    
-    - name: Upload release license
-      id: upload-release-license
+
+    - name: Upload unstripped AAR
+      if: github.ref == 'refs/heads/main'
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./libwebrtc-${{ inputs.milestone }}-unstripped.aar
+        asset_name: libwebrtc-${{ inputs.milestone }}-unstripped.aar
+        asset_content_type: application/zip
+
+    - name: Upload license
+      if: github.ref == 'refs/heads/main'
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
