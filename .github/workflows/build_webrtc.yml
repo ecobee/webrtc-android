@@ -46,7 +46,7 @@ jobs:
         sudo rm -rf "$AGENT_TOOLSDIRECTORY"
 
     - name: Checkout repository
-      uses: actions/checkout@v4.1.1
+      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
 
     - name: Install Python and binutils
       run: |
@@ -88,7 +88,7 @@ jobs:
 
     - name: Upload build artifacts
       if: github.ref != 'refs/heads/main'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
       with:
         name: webrtc-aars
         path: |
@@ -99,7 +99,7 @@ jobs:
     - name: Create Release
       if: github.ref == 'refs/heads/main'
       id: create_release
-      uses: actions/create-release@v1
+      uses: actions/create-release@0cb9c9b65d5d1901c1f53e5e66eaf4afd303e70e  # v1 (archived)
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
@@ -122,7 +122,7 @@ jobs:
 
     - name: Upload stripped AAR
       if: github.ref == 'refs/heads/main'
-      uses: actions/upload-release-asset@v1
+      uses: actions/upload-release-asset@e8f9f06c4b078e705bd2ea027f0926603fc9b4d5  # v1 (archived)
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
@@ -133,7 +133,7 @@ jobs:
 
     - name: Upload unstripped AAR
       if: github.ref == 'refs/heads/main'
-      uses: actions/upload-release-asset@v1
+      uses: actions/upload-release-asset@e8f9f06c4b078e705bd2ea027f0926603fc9b4d5  # v1 (archived)
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
@@ -144,7 +144,7 @@ jobs:
 
     - name: Upload license
       if: github.ref == 'refs/heads/main'
-      uses: actions/upload-release-asset@v1
+      uses: actions/upload-release-asset@e8f9f06c4b078e705bd2ea027f0926603fc9b4d5  # v1 (archived)
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
