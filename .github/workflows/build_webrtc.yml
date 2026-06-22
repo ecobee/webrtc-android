@@ -37,21 +37,27 @@ jobs:
         echo "$(pwd)/depot_tools" >> $GITHUB_PATH
 
     - name: Fetch WebRTC revision
+      env:
+        BRANCH_NUMBER: ${{ inputs.branch_number }}
       run: |
-        python3 build.py fetch --revision branch-heads/${{ inputs.branch_number }}
+        python3 build.py fetch --revision "branch-heads/${BRANCH_NUMBER}"
 
     - name: Build stripped WebRTC
       run: |
         python3 build.py build
 
     - name: Save stripped AAR and build unstripped
+      env:
+        MILESTONE: ${{ inputs.milestone }}
       run: |
-        cp ./src/libwebrtc.aar libwebrtc-${{ inputs.milestone }}.aar
+        cp ./src/libwebrtc.aar "libwebrtc-${MILESTONE}.aar"
         python3 build.py build --unstripped
 
     - name: Save unstripped AAR and license
+      env:
+        MILESTONE: ${{ inputs.milestone }}
       run: |
-        mv ./src/libwebrtc.aar libwebrtc-${{ inputs.milestone }}-unstripped.aar
+        mv ./src/libwebrtc.aar "libwebrtc-${MILESTONE}-unstripped.aar"
         mv ./src/LICENSE.md LICENSE.md
 
     - name: Upload build artifacts
