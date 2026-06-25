@@ -10,17 +10,43 @@ on:
         description: The milestone number of the WebRTC branch
         required: true
 
+permissions:
+  contents: write   # required for actions/create-release + upload-release-asset
+
 jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
+    - name: Validate inputs
+      env:
+        BRANCH_NUMBER: ${{ inputs.branch_number }}
+        MILESTONE: ${{ inputs.milestone }}
+      run: |
+        if [[ ! "$BRANCH_NUMBER" =~ ^[0-9]+$ ]]; then
+          echo "::error::branch_number must be numeric, got: $BRANCH_NUMBER"
+          exit 1
+        fi
+        if [[ ! "$MILESTONE" =~ ^[0-9]+$ ]]; then
+          echo "::error::milestone must be numeric, got: $MILESTONE"
+          exit 1
+        fi
+
+    - name: Compute artifact names
+      id: names
+      env:
+        MILESTONE: ${{ inputs.milestone }}
+      run: |
+        echo "stripped=libwebrtc-${MILESTONE}.aar" >> "$GITHUB_OUTPUT"
+        echo "unstripped=libwebrtc-${MILESTONE}-unstripped.aar" >> "$GITHUB_OUTPUT"
+        echo "tag=v${MILESTONE}" >> "$GITHUB_OUTPUT"
+
     - name: Allocate space for build
       run: |
         sudo rm -rf /usr/share/dotnet
         sudo rm -rf "$AGENT_TOOLSDIRECTORY"
 
     - name: Checkout repository
-      uses: actions/checkout@v4.1.1
+      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
 
     - name: Install Python and binutils
       run: |
@@ -37,51 +63,57 @@ jobs:
         echo "$(pwd)/depot_tools" >> $GITHUB_PATH
 
     - name: Fetch WebRTC revision
+      env:
+        BRANCH_NUMBER: ${{ inputs.branch_number }}
       run: |
-        python3 build.py fetch --revision branch-heads/${{ inputs.branch_number }}
+        python3 build.py fetch --revision "branch-heads/${BRANCH_NUMBER}"
 
     - name: Build stripped WebRTC
       run: |
         python3 build.py build
 
     - name: Save stripped AAR and build unstripped
+      env:
+        STRIPPED_NAME: ${{ steps.names.outputs.stripped }}
       run: |
-        cp ./src/libwebrtc.aar libwebrtc-${{ inputs.milestone }}.aar
+        cp ./src/libwebrtc.aar "${STRIPPED_NAME}"
         python3 build.py build --unstripped
 
     - name: Save unstripped AAR and license
+      env:
+        UNSTRIPPED_NAME: ${{ steps.names.outputs.unstripped }}
       run: |
-        mv ./src/libwebrtc.aar libwebrtc-${{ inputs.milestone }}-unstripped.aar
+        mv ./src/libwebrtc.aar "${UNSTRIPPED_NAME}"
         mv ./src/LICENSE.md LICENSE.md
 
     - name: Upload build artifacts
       if: github.ref != 'refs/heads/main'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
       with:
         name: webrtc-aars
         path: |
-          libwebrtc-${{ inputs.milestone }}.aar
-          libwebrtc-${{ inputs.milestone }}-unstripped.aar
+          ${{ steps.names.outputs.stripped }}
+          ${{ steps.names.outputs.unstripped }}
           LICENSE.md
 
     - name: Create Release
       if: github.ref == 'refs/heads/main'
       id: create_release
-      uses: actions/create-release@v1
+      uses: actions/create-release@0cb9c9b65d5d1901c1f53e5e66eaf4afd303e70e  # v1 (archived)
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: v${{ inputs.milestone }}
-        release_name: v${{ inputs.milestone }}
+        tag_name: ${{ steps.names.outputs.tag }}
+        release_name: ${{ steps.names.outputs.tag }}
         body: |
-          Built off of the ${{ inputs.milestone }} branch here: https://chromiumdash.appspot.com/branches
+          Built off of the ${{ steps.names.outputs.tag }} branch here: https://chromiumdash.appspot.com/branches
 
           Includes both stripped (for app distribution) and unstripped (for Crashlytics symbol upload) AARs.
 
           ## Crashlytics Native Symbol Upload
           To upload native debug symbols for crash reporting:
           ```bash
-          unzip libwebrtc-${{ inputs.milestone }}-unstripped.aar "jni/*" -d unstripped-symbols
+          unzip ${{ steps.names.outputs.unstripped }} "jni/*" -d unstripped-symbols
           firebase crashlytics:symbols:upload --app=<FIREBASE_APP_ID> unstripped-symbols/jni
           ```
 
@@ -90,29 +122,29 @@ jobs:
 
     - name: Upload stripped AAR
       if: github.ref == 'refs/heads/main'
-      uses: actions/upload-release-asset@v1
+      uses: actions/upload-release-asset@e8f9f06c4b078e705bd2ea027f0926603fc9b4d5  # v1 (archived)
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./libwebrtc-${{ inputs.milestone }}.aar
-        asset_name: libwebrtc-${{ inputs.milestone }}.aar
+        asset_path: ./${{ steps.names.outputs.stripped }}
+        asset_name: ${{ steps.names.outputs.stripped }}
         asset_content_type: application/zip
 
     - name: Upload unstripped AAR
       if: github.ref == 'refs/heads/main'
-      uses: actions/upload-release-asset@v1
+      uses: actions/upload-release-asset@e8f9f06c4b078e705bd2ea027f0926603fc9b4d5  # v1 (archived)
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./libwebrtc-${{ inputs.milestone }}-unstripped.aar
-        asset_name: libwebrtc-${{ inputs.milestone }}-unstripped.aar
+        asset_path: ./${{ steps.names.outputs.unstripped }}
+        asset_name: ${{ steps.names.outputs.unstripped }}
         asset_content_type: application/zip
 
     - name: Upload license
       if: github.ref == 'refs/heads/main'
-      uses: actions/upload-release-asset@v1
+      uses: actions/upload-release-asset@e8f9f06c4b078e705bd2ea027f0926603fc9b4d5  # v1 (archived)
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
